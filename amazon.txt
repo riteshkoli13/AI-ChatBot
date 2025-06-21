@@ -1,0 +1,52 @@
+from langchain_google_genai import ChatGoogleGenerativeAI
+from browser_use import Agent
+from browser_use import Agent, Browser, BrowserConfig
+from dotenv import load_dotenv
+import asyncio
+import os
+
+# Load environment variables
+load_dotenv()
+
+# Get API key from environment variable - make sure this is set in your .env file
+api_key = os.getenv("GOOGLE_API_KEY")  # The variable in .env should be GOOGLE_API_KEY=your_actual_key
+
+browser = Browser(
+    config=BrowserConfig(
+        # Specify the path to your Chrome executable
+        chrome_instance_path='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',  # macOS path
+        # For Windows, typically: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+        # For Linux, typically: '/usr/bin/google-chrome'
+    )
+)
+initial_actions = [
+	{'open_tab': {'url': 'https://www.amazon.in/'}}
+]
+async def main():
+    # Initialize the model with proper API key
+    llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash', api_key=api_key)
+    
+    # Create and run the agent
+    agent = Agent(
+        task="""
+    
+        Find product information on Amazon:
+        - Product: Wild Stone Edge EDP Premium Perfume for Men, 100 Ml
+        - Required details:
+             1. Full product name (exact as shown on Amazon)
+             2. Current minimum price
+             3. Average rating
+            4. Direct purchase URL
+        - Format response as structured JSON data with these keys: "product_name", "price", "rating", "purchase_url"
+        - If multiple sellers exist, return the lowest price option from a reputable seller
+        - Note: Return only factual information as displayed on the Amazon product page""",
+        llm=llm,
+        browser=browser,
+        initial_actions=initial_actions
+    )
+    result = await agent.run()
+    print(result.final_result())
+    await browser.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
